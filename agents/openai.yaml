@@ -1,0 +1,4 @@
+﻿version: 1
+display_name: SARIF Postprocess / SARIF 后处理
+short_description: Normalize SARIF, prioritize risk, and generate remediation-ready reports. / 归一化 SARIF、进行风险排序并生成可修复报告。
+default_prompt: Process SARIF outputs, de-duplicate findings, rank risks, and generate actionable markdown and JSON reports. / 处理 SARIF 输出，去重并排序风险，生成可执行的 Markdown 和 JSON 报告。
