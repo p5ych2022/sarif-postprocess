@@ -1,5 +1,4 @@
 # sarif-postprocess
-# sarif-postprocess
 
 `sarif-postprocess` is a source-aware SARIF analysis skill.
 `sarif-postprocess` 是一个面向源码上下文的 SARIF 分析技能。
