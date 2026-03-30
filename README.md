@@ -7,26 +7,7 @@
 It turns raw SARIF into a report that explains where a finding starts, where it ends, what the observed path looks like, and how the issue should be fixed.
 它会把原始 SARIF 转换成一份报告，解释漏洞从哪里开始、到哪里结束、观察到的路径是什么，以及问题应该如何修复。
 
-## Why The Old Report Was Not Enough
-## 为什么旧版报告不够用
 
-The original version mostly counted findings and listed top rules.
-最初的版本主要是在统计 finding 数量并列出高频规则。
-
-That is useful for dashboards, but weak for vulnerability triage and remediation.
-这对做仪表盘统计有帮助，但对漏洞分诊和修复帮助有限。
-
-Security review usually cares more about the vulnerable file and line, the source-to-sink chain, the code evidence, the root cause, and the concrete fix direction.
-安全分析通常更关心漏洞文件和行号、source 到 sink 的链路、代码证据、根因解释，以及具体修复方向。
-
-SARIF alone sometimes contains enough metadata to begin that explanation, especially when `codeFlows` and `relatedLocations` are present.
-单靠 SARIF 有时也能提供初步解释，尤其是当其中包含 `codeFlows` 和 `relatedLocations` 时。
-
-However, source code context is usually required before the report becomes truly actionable.
-但如果想让报告真正可执行，通常仍然需要源码上下文。
-
-This skill now treats SARIF as the finding index and uses source code or `codeql-db/src.zip` to enrich the report.
-这个 skill 现在把 SARIF 当作 finding 索引，再利用源码或 `codeql-db/src.zip` 来增强报告。
 
 ## What The Skill Produces
 ## 这个技能会产出什么
@@ -128,8 +109,6 @@ If a CodeQL database path is provided but the local `codeql` CLI is unavailable,
 如果提供了 CodeQL database 路径，但本地没有 `codeql` CLI，报告不会假装已经执行了实时数据库查询。
 
 ## Quality Gates
-## 质量门禁
-
 Counts across raw SARIF, normalized findings, and duplicates removed must reconcile.
 原始 SARIF、归一化 finding 和去重统计三者的数量必须一致。
 
@@ -142,14 +121,7 @@ Risk bucket totals in `summary.json` must equal the total finding count.
 `report.md` must include source and sink, call flow, vulnerability mechanism, and remediation guidance.
 `report.md` 必须包含 source 和 sink、调用链、漏洞机理和修复建议。
 
-## Publishing Notes
-## 发布说明
 
-If you plan to publish this skill, keep personal tests and local-only artifacts out of the repository.
-如果你计划把这个 skill 发布出去，请确保个人测试和仅本地使用的文件不要进入仓库。
-
-This repository should ignore `tests/`, `__pycache__/`, and Python bytecode artifacts before pushing.
-这个仓库在推送前应该忽略 `tests/`、`__pycache__/` 和 Python 字节码文件。
 
 ## Practical Trigger In Codex
 ## 在 Codex 中的触发方式
