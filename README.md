@@ -9,18 +9,14 @@ It turns raw SARIF into a report that explains where a finding starts, where it 
 
 
 
-## What The Skill Produces
-## 这个技能会产出什么
-
+## What The Skill Produces|这个技能会产出什么
 It always generates `normalized.json`, `summary.json`, and `report.md`.
 它始终会生成 `normalized.json`、`summary.json` 和 `report.md`。
 
 It can also generate `llm_analysis.json` and `fix_plan.md` when you explicitly ask for them.
 如果你明确要求，它还可以额外生成 `llm_analysis.json` 和 `fix_plan.md`。
 
-## Inputs
-## 输入
-
+## Inputs|输入
 The required input is either one SARIF file or one directory containing SARIF files.
 必需输入可以是单个 SARIF 文件，也可以是包含多个 SARIF 文件的目录。
 
@@ -33,9 +29,7 @@ The optional input `--codeql-db` points to a CodeQL database directory.
 If `src.zip` exists in the database, the scripts can load source snippets from that archive even when a checkout is unavailable.
 如果数据库中存在 `src.zip`，那么即使本地没有 checkout，脚本也能从该源码归档中提取代码片段。
 
-## Bundled Scripts
-## 内置脚本
-
+## Bundled Scripts|内置脚本
 The skill ships with `scripts/normalize_sarif.py` and `scripts/render_report.py`.
 这个技能自带 `scripts/normalize_sarif.py` 和 `scripts/render_report.py`。
 
@@ -45,9 +39,7 @@ The skill ships with `scripts/normalize_sarif.py` and `scripts/render_report.py`
 `render_report.py` builds `summary.json` and renders a detailed `report.md`.
 `render_report.py` 负责生成 `summary.json` 并渲染详细的 `report.md`。
 
-## Report Structure
-## 报告结构
-
+## Report Structure|报告结构
 The generated report is designed to answer triage questions quickly.
 生成出的报告是为了快速回答漏洞分诊问题而设计的。
 
@@ -57,9 +49,11 @@ Typical sections include Executive Summary, Analysis Inputs, Hotspots, Top Rules
 Each finding section includes the primary location, source and sink, call flow, vulnerability mechanism, source evidence, remediation guidance, and confidence notes.
 每条 finding 都会包含主位置、source 和 sink、调用链、漏洞机理、源码证据、修复建议和置信说明。
 
-## Typical Usage
-## 常见用法
+示例：
 
+<img src="https://cdn.jsdelivr.net/gh/p5ych2022/IHS@master/img/image-20260330173032900.png" alt="image-20260330173032900" style="zoom:67%;" />
+
+## Typical Usage|常见用法
 Single SARIF plus source checkout:
 单个 SARIF 配合源码 checkout：
 
@@ -90,9 +84,7 @@ python scripts/render_report.py \
   --top 20
 ```
 
-## Fallback Behavior
-## 回退行为
-
+## Fallback Behavior|回退行为
 This skill is intentionally explicit about what evidence was used.
 这个技能会明确说明到底使用了哪些证据来源。
 
@@ -123,9 +115,7 @@ Risk bucket totals in `summary.json` must equal the total finding count.
 
 
 
-## Practical Trigger In Codex
-## 在 Codex 中的触发方式
-
+## Practical Trigger In Codex|在 Codex 中的触发方式
 You can trigger it with prompts like “Apply `sarif-postprocess` to this SARIF and generate a detailed report”.
 你可以用“请对这个 SARIF 应用 `sarif-postprocess` 并生成详细报告”这样的提示来触发它。
 
