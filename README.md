@@ -1,4 +1,14 @@
+<<<<<<< HEAD
 # sarif-postprocess|sarif-postprocess
+=======
+# sarif-postprocess
+
+`sarif-postprocess` is a source-aware SARIF analysis skill.
+`sarif-postprocess` 是一个面向源码上下文的 SARIF 分析技能。
+
+It turns raw SARIF into a report that explains where a finding starts, where it ends, what the observed path looks like, and how the issue should be fixed.
+它会把原始 SARIF 转换成一份报告，解释漏洞从哪里开始、到哪里结束、观察到的路径是什么，以及问题应该如何修复。
+>>>>>>> bfa4454ec2dd5a12d5d9d613373f2721fce38e6b
 
 `sarif-postprocess` is a source-aware SARIF analysis skill. `sarif-postprocess` 是一个结合源码上下文的 SARIF 分析技能。
 
