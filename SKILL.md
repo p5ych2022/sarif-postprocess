@@ -1,124 +1,87 @@
 ---
 name: sarif-postprocess
-description: Use when SARIF findings need source-aware security reporting with source and sink locations, call-flow evidence, code snippets, and remediation guidance. 当 SARIF 结果需要结合源码位置、source/sink、调用链证据、代码片段与修复建议生成更可操作的安全报告时使用。
+description: Use when SARIF findings need source-aware security reporting with source and sink locations, call-flow evidence, code snippets, or remediation guidance.|当 SARIF 告警需要结合源码生成安全报告，并补充 source / sink 位置、调用流证据、代码片段或修复建议时使用。
 ---
 
-# SARIF Postprocess Skill
-# SARIF 后处理技能
+# SARIF Postprocess Skill|SARIF 后处理技能
 
-Treat SARIF as the finding index, then enrich it with source code or a CodeQL database source archive so the final report explains where the issue starts, where it lands, and how to fix it.
-将 SARIF 视为漏洞索引，再结合源码或 CodeQL 数据库中的源码归档进行增强，使最终报告能够说明漏洞从哪里开始、落到哪里，以及应该如何修复。
+## Overview|概览
 
-## When To Use
-## 适用场景
+Treat SARIF as the finding index, then enrich it with repository source code or a CodeQL database source archive so the final report explains where the issue starts, where it lands, and how it should be fixed. 把 SARIF 当作告警索引，再结合代码仓库源码或 CodeQL 数据库中的源码归档进行补充，这样最终报告就能说明问题从哪里开始、流向哪里，以及应当如何修复。
 
-- SARIF tells you a rule fired, but the report still does not explain the vulnerable code path.
-- SARIF 只告诉你某条规则命中了，但报告仍然无法解释真实的漏洞代码路径。
+## When To Use|适用场景
 
-- You need a report that answers where the source is, where the sink is, what the path looks like, and what should be changed.
-- 你需要一份能回答 source 在哪里、sink 在哪里、链路长什么样、代码应该怎么改的报告。
+- The raw SARIF tells you a rule fired, but it does not explain the vulnerable path clearly enough. 原始 SARIF 只告诉你某条规则被触发了，但没有足够清晰地解释漏洞路径。
+- You need source, sink, call-flow, code snippets, and remediation guidance in one report. 你需要在同一份报告里看到 source、sink、调用流、代码片段和修复建议。
+- You have one SARIF file, many SARIF files, or a CodeQL output directory and want a triage-ready report. 你手上有一个 SARIF 文件、多个 SARIF 文件，或者一个 CodeQL 输出目录，并希望生成可直接用于分诊的报告。
+- You have a source checkout or CodeQL database and want line-level evidence in the output. 你有源码 checkout 或 CodeQL 数据库，并希望输出中包含行级证据。
 
-- You have one SARIF file, many SARIF files, or a CodeQL output directory and want one triage-ready report.
-- 你有单个 SARIF、多个 SARIF，或者整个 CodeQL 输出目录，并希望得到一份可直接用于分诊的报告。
+Do not use this skill when the user only wants the raw SARIF preserved or only wants a mechanical file conversion with no source-aware analysis.
+如果用户只想保留原始 SARIF，或者只想做机械式文件转换而不需要结合源码分析，就不要使用这个技能。
 
-- You have a source checkout or a CodeQL database and want line-level code evidence in the report.
-- 你拥有源码 checkout 或 CodeQL database，并希望报告里带有行级别的代码证据。
+## Inputs|输入
 
-## Inputs
-## 输入
+Accept either 接受以下任一输入：
 
-Accept a single SARIF file or a directory containing SARIF files.
-接受单个 SARIF 文件，或包含多个 SARIF 文件的目录。
+- One SARIF file
+- One directory containing SARIF files
 
-Optional enrichment inputs are `source-root` and `codeql-db`.
-可选的增强输入包括 `source-root` 和 `codeql-db`。
+Optional enrichment inputs 可选的增强输入：
 
-Use `source-root` to load source snippets from a repository checkout.
-使用 `source-root` 从源码仓库 checkout 中读取代码片段。
+- `--source-root`: repository checkout used to load source snippets. 用于加载源码片段的仓库 checkout
+- `--codeql-db`: CodeQL database directory used for metadata and `src.zip` fallback. CodeQL 数据库目录，用于读取元数据，并在需要时回退到 `src.zip`
 
-Use `codeql-db` as a fallback source archive provider when it contains `src.zip`.
-当 `codeql-db` 中包含 `src.zip` 时，可将其作为源码片段的回退来源。
+Prefer explicit metadata such as repository path, commit or tag, scan time, and language when available.如果能拿到明确的元数据，优先提供仓库路径、commit 或 tag、扫描时间和语言信息。
 
-Prefer explicit metadata such as repository path, commit or tag, scan time, and language when available.
-如果可以，优先提供仓库路径、commit 或 tag、扫描时间和语言等显式元数据。
+## Output Contract|输出约定
 
-## Output Contract
-## 输出约定
+Always generate 始终生成：
 
-Always generate `normalized.json`, `summary.json`, and `report.md`.
-始终生成 `normalized.json`、`summary.json` 和 `report.md`。
+- `normalized.json`
 
-Optionally generate `llm_analysis.json` and `fix_plan.md` when the user asks for them.
-当用户明确要求时，可额外生成 `llm_analysis.json` 和 `fix_plan.md`。
+- `summary.json`
 
-## Workflow
-## 工作流
+- `report.md`
 
-1. Validate the SARIF payload before any transformation.
-1. 在做任何转换之前先验证 SARIF 载荷。
+- `llm_analysis.md`
 
-Require at least `runs[0]` and fail fast on malformed input.
-要求至少存在 `runs[0]`，如果输入格式异常则快速失败。
+- `fix_plan.md`
 
-2. Normalize each finding into a stable schema.
-2. 将每条 finding 归一化为稳定的数据结构。
+  
 
-Extract rule id, rule name, message, severity, security severity, primary location, tags, taxonomies, related locations, and SARIF code-flow steps.
-提取规则 ID、规则名称、消息、严重性、安全严重性、主位置、标签、分类信息、相关位置以及 SARIF 的代码流步骤。
+## Workflow|工作流程
 
-3. Deduplicate deterministically.
-3. 使用确定性规则去重。
+1. Validate the SARIF payload before any transformation.在进行任何转换前，先校验 SARIF 载荷。
+   Require at least `runs[0]` and fail fast on malformed input.至少要求存在 `runs[0]`，如果输入格式错误就尽快失败。
+2. Normalize each finding into a stable schema.把每条告警规范化为稳定的统一结构。
+3. Extract rule id, rule name, message, severity, security severity, primary location, tags, taxonomies, related locations, and SARIF code-flow steps.提取 rule id、rule name、message、severity、security severity、primary location、tags、taxonomies、related locations，以及 SARIF 中的 code-flow steps。
+4. Deduplicate deterministically.以确定性方式去重。
+5. Use `(rule_id, file, line, compact_message)` as the fingerprint basis.使用 `(rule_id, file, line, compact_message)` 作为指纹基础。
+6. Enrich with source evidence.用源码证据补充告警信息。
+7. Prefer `--source-root` for snippets and fall back to `codeql-db/src.zip` when the checkout is missing or incomplete.优先通过 `--source-root` 加载代码片段；如果 checkout 缺失或不完整，则回退到 `codeql-db/src.zip`。
+8. Summarize the source-to-sink path.汇总从 source 到 sink 的路径。
+9. For every finding, derive source location, sink location, step count, and touched files.对每条告警提取 source 位置、sink 位置、步骤数以及涉及的文件。
+10. Render a detailed security report.生成详细的安全报告。
+11. The report must answer where tainted data enters, where it reaches the dangerous sink, what evidence exists, which code lines matter, and what remediation pattern fits the issue.报告必须回答污点数据从哪里进入、在哪里到达危险 sink、有哪些证据、哪些代码行最关键，以及适合该问题的修复模式是什么。
+12. Generate the extended analysis artifacts as Markdown.以 Markdown 形式生成扩展分析产物。
+13. `llm_analysis.md` should summarize the overall assessment, rule clusters, notable findings, and confidence notes in a readable format.`llm_analysis.md` 应以可读格式总结总体评估、规则聚类、重点告警和置信度说明。
+14. `fix_plan.md` should focus on remediation order, target files, verification goals, and rollout priorities.`fix_plan.md` 应重点说明修复顺序、目标文件、验证目标以及落地优先级。
+15. Be explicit about limits.明确说明能力边界和限制。
+16. If source snippets are unavailable, say the report is SARIF-only.如果拿不到源码片段，要明确说明报告是基于 SARIF-only 的分析。
+17. If a CodeQL database is present but the local `codeql` CLI is unavailable, do not claim database query expansion happened.如果存在 CodeQL 数据库但本地没有可用的 `codeql` CLI，就不要声称执行过数据库查询扩展。
 
-Use `(rule_id, file, line, compact_message)` as the fingerprint basis.
-使用 `(rule_id, file, line, compact_message)` 作为指纹基础字段。
+## Scripts|脚本
 
-4. Enrich with source evidence.
-4. 用源码证据增强 finding。
-
-Prefer `source-root` for snippets, and fall back to `codeql-db/src.zip` when the checkout is missing or incomplete.
-优先从 `source-root` 读取代码片段；如果本地 checkout 缺失或不完整，则回退到 `codeql-db/src.zip`。
-
-5. Summarize the source-to-sink path.
-5. 汇总从 source 到 sink 的路径。
-
-For every finding, derive source location, sink location, step count, and touched files.
-对每条 finding 计算 source 位置、sink 位置、步骤数以及涉及的文件。
-
-6. Render a detailed security report.
-6. 生成详细的安全报告。
-
-The report must answer where tainted data enters, where it reaches the dangerous sink, what evidence exists, which code lines matter, and what remediation pattern fits the issue.
-报告必须回答污点数据从哪里进入、到达了哪个危险 sink、有哪些证据、哪些代码行最关键，以及该漏洞适合哪类修复模式。
-
-7. Be explicit about limits.
-7. 明确说明能力边界和限制。
-
-If source snippets are unavailable, say the report is SARIF-only.
-如果源码片段不可用，就明确说明该报告只能基于 SARIF。
-
-If a CodeQL database is present but the local `codeql` CLI is unavailable, do not claim database query expansion happened.
-如果存在 CodeQL database 但本地没有 `codeql` CLI，不要声称已经进行了数据库级查询增强。
-
-## Scripts
-## 脚本
-
-Use bundled scripts before writing ad-hoc code.
-优先使用内置脚本，不要先写一次性代码。
+Use bundled scripts before writing ad-hoc code 在编写临时代码之前，先使用随附脚本：
 
 - `scripts/normalize_sarif.py`
-- `scripts/normalize_sarif.py`
-
-- `scripts/render_report.py`
 - `scripts/render_report.py`
 
-Patch these scripts first when functionality is missing.
-当功能不足时，优先修改这两个脚本。
+Patch these scripts first when required functionality is missing. 如果缺少所需功能，应优先修改这些脚本，而不是另写一套临时代码。
 
-## Commands
-## 命令示例
+## Commands|命令
 
-Single SARIF plus source checkout:
-单个 SARIF 配合源码 checkout：
+Single SARIF plus source checkout  单个 SARIF 加源码 checkout：
 
 ```bash
 python scripts/normalize_sarif.py \
@@ -131,8 +94,7 @@ python scripts/render_report.py \
   --out-dir out
 ```
 
-Directory of SARIF files with CodeQL DB fallback:
-多个 SARIF 文件目录并带 CodeQL DB 回退：
+Directory of SARIF files with CodeQL DB fallback  包含多个 SARIF 文件的目录，并以 CodeQL DB 作为回退来源：
 
 ```bash
 python scripts/normalize_sarif.py \
@@ -147,50 +109,18 @@ python scripts/render_report.py \
   --top 20
 ```
 
-## Quality Gates
-## 质量门禁
+## Quality Gates|质量门禁
 
-- Raw count, normalized count, and duplicates removed must reconcile.
-- 原始数量、归一化数量和去重数量必须彼此一致。
+- Raw count, normalized count, and duplicates removed must reconcile. 原始数量、规范化后的数量以及去重移除的数量必须能相互对上。
+- Every finding must contain `rule_id` plus a primary location or explicit `unknown`. 每条告警都必须包含 `rule_id`，以及一个 primary location，或者显式标记为 `unknown`。
+- `summary.json` risk bucket totals must equal the total finding count. `summary.json` 中各风险分桶的总数必须等于告警总数。
+- `report.md` must include primary location, source and sink, call flow, vulnerability mechanism, and remediation guidance. `report.md` 必须包含 primary location、source 和 sink、调用流、漏洞机理以及修复建议。
+- If source context is unavailable, the report must say so instead of implying that line-level review happened. 如果拿不到源码上下文，报告必须明确写出来，不能暗示已经做过行级审查。
+- `llm_analysis.md` and `fix_plan.md` must stay readable and audience-facing. Do not dump raw JSON structures into those Markdown files. `llm_analysis.md` 和 `fix_plan.md` 必须保持可读、面向读者；不要把原始 JSON 结构直接倾倒进这些 Markdown 文件里。
 
-- Every finding must contain `rule_id` plus a primary location or explicit `unknown`.
-- 每条 finding 都必须包含 `rule_id`，以及主位置或显式的 `unknown` 标记。
+## Safety Boundaries|安全边界
 
-- `summary.json` risk bucket totals must equal the total finding count.
-- `summary.json` 中各风险分桶的总和必须等于 finding 总数。
-
-- `report.md` must include primary location, source and sink, call flow, vulnerability mechanism, and remediation guidance.
-- `report.md` 必须包含主位置、source 与 sink、调用链、漏洞机理和修复建议。
-
-- If source context is unavailable, the report must say so instead of implying that line-level review happened.
-- 如果源码上下文不可用，报告必须明确说明，而不是暗示已经做了行级代码审查。
-
-## Safety Boundaries
-## 安全边界
-
-- Do not execute code from SARIF snippets.
-- 不要执行 SARIF 片段中的任何代码。
-
-- Do not claim exploitability certainty without direct evidence.
-- 没有直接证据时，不要声称漏洞一定可利用。
-
-- Do not claim CodeQL DB query expansion unless you actually queried it.
-- 除非你真的查询过 CodeQL DB，否则不要声称已经做了数据库增强分析。
-
-- Keep raw SARIF separate from derived artifacts.
-- 原始 SARIF 与衍生产物必须分离保存。
-
-## References
-## 参考资料
-
-Load only when needed.
-仅在需要时加载。
-
-- `references/schema.md`
-- `references/schema.md`
-
-- `references/risk-mapping.md`
-- `references/risk-mapping.md`
-
-- `references/prompt-contract.md`
-- `references/prompt-contract.md`
+- Do not execute code from SARIF snippets. 不要执行来自 SARIF 片段中的代码。
+- Do not claim exploitability certainty without direct evidence. 在没有直接证据的情况下，不要声称漏洞一定可利用。
+- Do not claim CodeQL DB query expansion unless you actually queried it. 如果你实际上没有查询 CodeQL DB，就不要声称做过数据库查询扩展。
+- Keep raw SARIF separate from derived artifacts. 保持原始 SARIF 与派生产物分离。

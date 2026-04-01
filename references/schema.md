@@ -1,4 +1,4 @@
-﻿# Normalized Schema
+﻿﻿# Normalized Schema
 # 归一化结构
 
 Each finding should follow a stable JSON shape.
